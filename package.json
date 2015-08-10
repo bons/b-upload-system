@@ -27,7 +27,7 @@
   "scripts": {
     "test": "grunt karma:dist"
   },
-  "main": "lib",
+  "main": "lib/index.js",
   "devDependencies": {
     "browserify": "^9.0.3",
     "angular": "^1.3.15",

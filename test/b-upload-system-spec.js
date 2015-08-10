@@ -2,7 +2,7 @@
 
 require('angular');
 require('angular-mocks');
-var app = require('../lib/b-upload-system');
+/*var app = require('../lib/b-upload-system');
 
 describe('Test Suite: b_upload_system', function()
 {
@@ -43,4 +43,4 @@ describe('Test Suite: b_upload_system', function()
     });
   });
 
-});
+});*/

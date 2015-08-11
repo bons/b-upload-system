@@ -1,4 +1,4 @@
-/* b-upload-system - v0.1.0 - 2015-08-10
+/* b-upload-system - v0.1.0 - 2015-08-11
 * https://github.com/bons/b-upload-system
 * Copyright (c) 2015 Bons; Licensed MIT */
 
@@ -28,7 +28,7 @@ function bBrowseFilesDirective()
       {
         evt.stopPropagation(); // [!] avoid looping to parent
 
-        if( evt.target.nodeName !== "INPUT" )
+        if(evt.target.type !== 'file')
         {
           evt.preventDefault(); // avoid activating links  but allow input to open the file browser
 

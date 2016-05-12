@@ -1,6 +1,6 @@
-/* b-upload-system - v0.1.0 - 2015-08-11
+/* b-upload-system - v0.1.0 - 2016-05-12
 * https://github.com/bons/b-upload-system
-* Copyright (c) 2015 Bons; Licensed MIT */
+* Copyright (c) 2016 Bons; Licensed MIT */
 
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 'use strict';
@@ -14,7 +14,7 @@ function bBrowseFilesDirective()
     scope: true,
     transclude: true,
     require: '^bUploadSystem',
-    template: '<input type="file" multiple ng-cloak><ng-transclude></ng-transclude>',
+    template: '<input type="file" ng-hide="true"><ng-transclude></ng-transclude>',
     controller: ['$scope', '$element', function($scope, $element)
     {
       $scope.browseFile = function()
@@ -24,6 +24,14 @@ function bBrowseFilesDirective()
     }],
     link: function(scp, elem, attr, ctrl)
     {
+      if(!attr.bUploadSingleFile) {
+        elem[0].querySelector('input[type="file"]').setAttribute('multiple', '');
+      }
+
+      if(attr.bAcceptedExtensions) {
+        elem[0].querySelector('input[type="file"]').setAttribute('accept', attr.bAcceptedExtensions);
+      }
+
       elem.bind("click", function(evt)
       {
         evt.stopPropagation(); // [!] avoid looping to parent
@@ -46,8 +54,12 @@ function bBrowseFilesDirective()
           return false;
         }
 
-        scp.$apply(function(){
-          ctrl.saveFiles( self.files );
+        scp.$apply(function() {
+          if (!attr.bUploadSingleFile) {
+            ctrl.saveFiles( self.files );
+          } else {
+            ctrl.saveFile(self.files);
+          }
         });
       });
     }
@@ -70,6 +82,98 @@ angular .module(MODULE_NAME, [])
 module.exports = MODULE_NAME;
 
 },{"./directive":1,"angular":"angular"}],3:[function(require,module,exports){
+'use strict';
+
+function bDropZone()
+{
+  function hasFiles( evt )
+  {
+    return evt && evt.dataTransfer && evt.dataTransfer.types && evt.dataTransfer.types.indexOf('Files') >= 0;
+  }
+
+  return {
+    scope: {
+      onDraggingFiles : '&',
+      isDraggingFiles : '='
+    },
+    transclude: true,
+    require: '^bUploadSystem',
+    controller: function(){},
+    link: function(scp, elm, attr, ctrl, trans)
+    {
+      elm[0].addEventListener("dragleave", function( evt )
+			{
+				evt.preventDefault();
+        scp.isDraggingFiles = false;
+
+        scp.$apply();
+			});
+
+      elm[0].addEventListener("drop", function( evt )
+      {
+        evt.preventDefault();
+        scp.isDraggingFiles = false;
+        scp.$apply();
+      });
+			// listen for human interaction
+			elm[0].addEventListener("dragover", function( evt )
+			{
+				evt.preventDefault();
+
+				if( !hasFiles( evt ) ){
+					scp.isDraggingFiles = false;
+          scp.$apply();
+					return; // exit
+				}
+        scp.isDraggingFiles = true;
+
+        if(typeof scp.onDraggingFiles == "function")
+          scp.onDraggingFiles(elm);
+				// notify parents
+				scp.$apply();
+			});
+
+			elm[0].addEventListener("drop", function( evt )
+			{
+				evt.preventDefault();
+
+				if( !hasFiles( evt ) )
+				{
+					console.error("No file received");
+					return; // exit
+				}
+
+				scp.$apply(function(){
+					ctrl.saveFiles( evt.dataTransfer.files );
+				});
+
+				console.log("Files received", evt.dataTransfer.files);
+			});
+
+      trans(scp, function(clone)
+      {
+        elm.append(clone);
+      });
+    }
+  };
+}
+
+module.exports = bDropZone;
+
+},{}],4:[function(require,module,exports){
+'use strict';
+
+var MODULE_NAME = 'bUploadSystem.bDropZone';
+
+var angular = require('angular');
+var directive = require('./directive');
+
+angular .module(MODULE_NAME, [])
+        .directive('bDropZone', [directive]);
+
+module.exports = MODULE_NAME;
+
+},{"./directive":3,"angular":"angular"}],5:[function(require,module,exports){
 'use strict';
 
 function bUploadSystemDirective()
@@ -99,23 +203,29 @@ function bUploadSystemDirective()
           $scope.receivedFiles = filesArr;
         }
       };
+
+      this.saveFile = function(fileData)
+      {
+          $scope.receivedFiles = fileData[0] || {};
+      };
     }]
   };
 }
 
 module.exports = bUploadSystemDirective;
 
-},{}],4:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 'use strict';
 
 var MODULE_NAME = 'bUploadSystem',
     angular = require('angular'),
     bBrowseFilesModule = require('./b-browse-files'),
+    bDropZoneModule = require('./b-drop-zone'),
     directive = require('./directive');
 
-angular .module(MODULE_NAME, [bBrowseFilesModule])
+angular .module(MODULE_NAME, [bBrowseFilesModule, bDropZoneModule])
         .directive('bUploadSystem',[directive]);
 
 module.exports = MODULE_NAME;
 
-},{"./b-browse-files":2,"./directive":3,"angular":"angular"}]},{},[1,2,3,4]);
+},{"./b-browse-files":2,"./b-drop-zone":4,"./directive":5,"angular":"angular"}]},{},[1,2,3,4,5,6]);
